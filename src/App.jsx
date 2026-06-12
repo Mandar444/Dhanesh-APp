@@ -26,6 +26,27 @@ import {
   saveUser
 } from "./utils/db";
 import "./index.css";
+const getValidLensConfig = (frame, color, currentCategory) => {
+  if (!frame || !color) return { category: "Standard Lens", lens: "RX" };
+  const lenses = frame.variants ? frame.variants.filter((v) => v.color === color).map((v) => v.lens) : [];
+  const supportsStandard = lenses.includes("RX");
+  const supportsCustom = lenses.some((l) => l !== "RX");
+
+  let resolvedCategory = currentCategory;
+  if (currentCategory === "Standard Lens" && !supportsStandard) {
+    resolvedCategory = "Custom Lens";
+  } else if (currentCategory === "Custom Lens" && !supportsCustom) {
+    resolvedCategory = "Standard Lens";
+  }
+
+  let resolvedLens = "RX";
+  if (resolvedCategory === "Custom Lens") {
+    const customLenses = lenses.filter((l) => l !== "RX");
+    resolvedLens = customLenses[0] || "Green";
+  }
+
+  return { category: resolvedCategory, lens: resolvedLens };
+};
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -352,12 +373,16 @@ export default function App() {
     sendWhatsAppNotification(created);
 
     // Reset Form
+    const resetFrame = frames[0];
+    const resetColor = resetFrame?.colors[0] || "";
+    const resetConfig = getValidLensConfig(resetFrame, resetColor, "Standard Lens");
+
     setNewOrder({
       customerName: "",
-      frameId: frames[0]?.id || "",
-      frameColor: frames[0]?.colors[0] || "",
-      lensCategory: "Standard Lens",
-      lensColor: "RX",
+      frameId: resetFrame?.id || "",
+      frameColor: resetColor,
+      lensCategory: resetConfig.category,
+      lensColor: resetConfig.lens,
       specialInstructions: "",
       assignedTo: users.find(u => u.role === "staff")?.id || "",
       hasPrescription: false,
@@ -588,12 +613,15 @@ export default function App() {
             <button
               onClick={() => {
                 if (frames.length > 0) {
+                  const firstFrame = frames[0];
+                  const firstColor = firstFrame.colors[0];
+                  const config = getValidLensConfig(firstFrame, firstColor, "Standard Lens");
                   setNewOrder(prev => ({
                     ...prev,
-                    frameId: frames[0].id,
-                    frameColor: frames[0].colors[0],
-                    lensCategory: "Standard Lens",
-                    lensColor: "RX",
+                    frameId: firstFrame.id,
+                    frameColor: firstColor,
+                    lensCategory: config.category,
+                    lensColor: config.lens,
                     hasPrescription: false,
                     prescriptionType: "Single Vision",
                     assignedTo: users.find(u => u.role === "staff")?.id || ""
@@ -957,6 +985,13 @@ export default function App() {
   const selectedFrame = frames.find((f) => f.id === newOrder.frameId);
   const staffUsers = users.filter((u) => u.role === "staff");
 
+  const availableLenses = selectedFrame && newOrder.frameColor
+    ? (selectedFrame.variants || []).filter((v) => v.color === newOrder.frameColor).map((v) => v.lens)
+    : [];
+  const hasStandardOption = availableLenses.includes("RX");
+  const hasCustomOption = availableLenses.some((l) => l !== "RX");
+  const availableLensColorsForSelectedColor = availableLenses.filter((l) => l !== "RX");
+
   return (
     <div className="app-container">
       {/* Top Bar Header */}
@@ -1004,11 +1039,13 @@ export default function App() {
                         const frameId = e.target.value;
                         const frame = frames.find((f) => f.id === frameId);
                         const firstColor = frame ? frame.colors[0] : "";
+                        const config = getValidLensConfig(frame, firstColor, newOrder.lensCategory);
                         setNewOrder({
                           ...newOrder,
                           frameId,
                           frameColor: firstColor,
-                          lensColor: newOrder.lensCategory === "Standard Lens" ? "RX" : (lensColors[0] || "Green")
+                          lensCategory: config.category,
+                          lensColor: config.lens
                         });
                       }}
                       required
@@ -1027,10 +1064,12 @@ export default function App() {
                       value={newOrder.frameColor}
                       onChange={(e) => {
                         const frameColor = e.target.value;
+                        const config = getValidLensConfig(selectedFrame, frameColor, newOrder.lensCategory);
                         setNewOrder({
                           ...newOrder,
                           frameColor,
-                          lensColor: newOrder.lensCategory === "Standard Lens" ? "RX" : (lensColors[0] || "Green")
+                          lensCategory: config.category,
+                          lensColor: config.lens
                         });
                       }}
                       disabled={!newOrder.frameId}
@@ -1052,18 +1091,19 @@ export default function App() {
                       value={newOrder.lensCategory}
                       onChange={(e) => {
                         const category = e.target.value;
+                        const config = getValidLensConfig(selectedFrame, newOrder.frameColor, category);
                         setNewOrder({
                           ...newOrder,
-                          lensCategory: category,
-                          lensColor: category === "Standard Lens" ? "RX" : (lensColors[0] || "Green"),
+                          lensCategory: config.category,
+                          lensColor: config.lens,
                           hasPrescription: false,
                           prescriptionType: "Single Vision"
                         });
                       }}
                       required
                     >
-                      <option value="Standard Lens">Standard Lens</option>
-                      <option value="Custom Lens">Custom Lens (Tinted/Colored)</option>
+                      {hasStandardOption && <option value="Standard Lens">Standard Lens</option>}
+                      {hasCustomOption && <option value="Custom Lens">Custom Lens (Tinted/Colored)</option>}
                     </select>
                   </div>
 
@@ -1076,9 +1116,13 @@ export default function App() {
                         onChange={(e) => setNewOrder({ ...newOrder, lensColor: e.target.value })}
                         required
                       >
-                        {lensColors.filter((c) => c !== "RX").map((c) => (
-                          <option key={c} value={c}>{c}</option>
-                        ))}
+                        {availableLensColorsForSelectedColor.length > 0 ? (
+                          availableLensColorsForSelectedColor.map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))
+                        ) : (
+                          <option value="">No custom lenses available</option>
+                        )}
                       </select>
                     </div>
                   ) : (

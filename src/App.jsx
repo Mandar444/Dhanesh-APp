@@ -213,7 +213,8 @@ export default function App() {
     specialInstructions: "",
     assignedTo: "",
     hasPrescription: false,
-    prescriptionType: "Single Vision"
+    prescriptionType: "Single Vision",
+    deliveryMode: "Shipment"
   });
 
   // Resolution Form state
@@ -326,13 +327,16 @@ export default function App() {
       ? "Custom Lens"
       : `Standard Lens${newOrder.hasPrescription ? ` (${newOrder.prescriptionType})` : ""}`;
 
+    const resolvedInstructions = newOrder.specialInstructions + 
+      (newOrder.deliveryMode === "Handover" ? " | MODE: Handover" : "");
+
     const orderData = {
       customerName: newOrder.customerName,
       frameName: frame.name,
       frameColor: newOrder.frameColor,
       lensType: resolvedLensType,
       lensColor: resolvedLensColor,
-      specialInstructions: newOrder.specialInstructions,
+      specialInstructions: resolvedInstructions,
       assignedTo: newOrder.assignedTo,
       assignedToName: staff.name,
       prescription: {
@@ -357,7 +361,8 @@ export default function App() {
       specialInstructions: "",
       assignedTo: users.find(u => u.role === "staff")?.id || "",
       hasPrescription: false,
-      prescriptionType: "Single Vision"
+      prescriptionType: "Single Vision",
+      deliveryMode: "Shipment"
     });
   };
 
@@ -1125,19 +1130,34 @@ export default function App() {
                   ></textarea>
                 </div>
 
-                <div>
-                  <label htmlFor="modal-assignee">Assign Operations Staff *</label>
-                  <select
-                    id="modal-assignee"
-                    value={newOrder.assignedTo}
-                    onChange={(e) => setNewOrder({ ...newOrder, assignedTo: e.target.value })}
-                    required
-                  >
-                    <option value="">-- Select Staff --</option>
-                    {staffUsers.map((u) => (
-                      <option key={u.id} value={u.id}>{u.name}</option>
-                    ))}
-                  </select>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                  <div>
+                    <label htmlFor="modal-delivery-mode">Delivery Mode *</label>
+                    <select
+                      id="modal-delivery-mode"
+                      value={newOrder.deliveryMode || "Shipment"}
+                      onChange={(e) => setNewOrder({ ...newOrder, deliveryMode: e.target.value })}
+                      required
+                    >
+                      <option value="Shipment">Shipment (Requires Label)</option>
+                      <option value="Handover">Direct Handover (No Label)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="modal-assignee">Assign Operations Staff *</label>
+                    <select
+                      id="modal-assignee"
+                      value={newOrder.assignedTo}
+                      onChange={(e) => setNewOrder({ ...newOrder, assignedTo: e.target.value })}
+                      required
+                    >
+                      <option value="">-- Select Staff --</option>
+                      {staffUsers.map((u) => (
+                        <option key={u.id} value={u.id}>{u.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
               <div className="modal-footer">

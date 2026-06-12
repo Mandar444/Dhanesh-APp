@@ -3,6 +3,11 @@ import { useState } from "react";
 export default function PackingScreen({ order, onBack, onUpdateChecklist, onMarkPacked, onReportIssue }) {
   const [checklist, setChecklist] = useState({ ...order.checklist });
 
+  const isHandover = order.specialInstructions?.includes("MODE: Handover");
+  const displayInstructions = order.specialInstructions
+    ? order.specialInstructions.replace(" | MODE: Handover", "").replace("MODE: Handover", "").trim()
+    : "";
+
   const [showIssueModal, setShowIssueModal] = useState(false);
   const [issueType, setIssueType] = useState("Frame Not Available");
   const [issueDetails, setIssueDetails] = useState("");
@@ -96,10 +101,10 @@ export default function PackingScreen({ order, onBack, onUpdateChecklist, onMark
               </div>
             )}
 
-            {order.specialInstructions && (
+            {displayInstructions && (
               <div style={{ marginTop: "4px", padding: "12px 14px", backgroundColor: "#fffbeb", borderLeft: "4px solid var(--color-warning)", borderRadius: "var(--radius-sm)" }}>
                 <div style={{ fontSize: "12px", fontWeight: "700", color: "#b45309" }}>⚠️ Special Packing Notes:</div>
-                <p style={{ fontSize: "13px", color: "#b45309", marginTop: "2px", fontWeight: "600" }}>{order.specialInstructions}</p>
+                <p style={{ fontSize: "13px", color: "#b45309", marginTop: "2px", fontWeight: "600" }}>{displayInstructions}</p>
               </div>
             )}
           </div>
@@ -187,8 +192,14 @@ export default function PackingScreen({ order, onBack, onUpdateChecklist, onMark
                   )}
                 </div>
                 <div className="checklist-text">
-                  <span className="checklist-title">6. Package & Apply Label</span>
-                  <span className="checklist-desc">Seal inside shipping box and attach the label for "{order.customerName}"</span>
+                  <span className="checklist-title">
+                    {isHandover ? "6. Direct Handover Preparation" : "6. Package & Apply Label"}
+                  </span>
+                  <span className="checklist-desc">
+                    {isHandover
+                      ? "Verify pieces are clean and ready for direct customer/courier handoff (no shipping box or label required)"
+                      : `Seal inside shipping box and attach the label for "${order.customerName}"`}
+                  </span>
                 </div>
               </div>
             </div>

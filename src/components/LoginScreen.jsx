@@ -19,10 +19,11 @@ export default function LoginScreen({ users, onSelectUser }) {
 
   const handlePasswordSubmit = (e) => {
     e.preventDefault();
-    if (password === "admin") {
+    const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || "admin";
+    if (password === adminPassword) {
       onSelectUser(selectedUser.id);
     } else {
-      setError("Incorrect password. Hint: Enter 'admin'");
+      setError("Incorrect password. Please try again.");
     }
   };
 
@@ -137,9 +138,6 @@ export default function LoginScreen({ users, onSelectUser }) {
                   border: "1px solid #cbd5e1"
                 }}
               />
-              <span style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "6px", display: "block" }}>
-                Hint: Password is <strong>admin</strong>
-              </span>
             </div>
 
             {error && (

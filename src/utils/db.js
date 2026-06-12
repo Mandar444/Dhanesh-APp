@@ -20,6 +20,14 @@ const setLocal = (key, data) => localStorage.setItem(key, JSON.stringify(data));
 
 export const initDB = async () => {
   if (isSupabaseLive) {
+    try {
+      // Automatically clean up dummy employees from Supabase database
+      await supabase.from("users").delete().in("id", ["sarah", "marcus"]);
+      // Keep Dhanesh's name correctly seeded
+      await supabase.from("users").update({ name: "Dhanesh" }).eq("id", "dhanesh");
+    } catch (e) {
+      console.error("Error cleaning up Supabase users:", e);
+    }
     return;
   }
 
